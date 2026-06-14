@@ -1,6 +1,6 @@
 import { useRef, useEffect, useState, useCallback } from "react";
-import * as THREE from "three";
-import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
+import { Canvas } from "@react-three/fiber";
+import { ACESFilmicToneMapping } from "three";
 import {
   MousePointer,
   Move,
@@ -11,311 +11,43 @@ import {
   Settings,
   Palette,
 } from "lucide-react";
-import { Fish } from "./aquarium/fish";
-import { Food } from "./aquarium/food";
-import {
-  TANK_WIDTH,
-  TANK_HEIGHT,
-  TANK_DEPTH,
-  FISH_COLORS,
-} from "./aquarium/constants";
-
-type Theme = "day" | "night" | "abyss";
+import { AquariumScene } from "./aquarium/aquarium-scene";
+import { TANK_WIDTH, TANK_DEPTH, FISH_COLORS } from "./aquarium/constants";
+import type { FishData } from "./aquarium/fish-mesh";
+import type { FoodData } from "./aquarium/food-mesh";
+import type { Theme } from "./aquarium/tank-environment";
 
 export default function App() {
-  // Three.js refs（再レンダリング不要なため useRef で管理）
-  const containerRef = useRef<HTMLDivElement>(null);
-  const sceneRef = useRef<THREE.Scene | null>(null);
-  const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
-  const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
-  const controlsRef = useRef<OrbitControls | null>(null);
-  const fishesRef = useRef<Fish[]>([]);
-  const foodsRef = useRef<Food[]>([]);
-  const bubbleSystemRef = useRef<THREE.Points | null>(null);
-  const lightRaysRef = useRef<THREE.Mesh[]>([]);
-  const topLightRef = useRef<THREE.SpotLight | null>(null);
-  const ambientLightRef = useRef<THREE.AmbientLight | null>(null);
-  const animationIdRef = useRef<number>(0);
+  const fishIdCounter = useRef(0);
+  const foodIdCounter = useRef(0);
 
-  // UI state
-  const [fishCount, setFishCount] = useState(0);
-  const [foodCount, setFoodCount] = useState(0);
+  const [fishes, setFishes] = useState<FishData[]>(() =>
+    Array.from({ length: 12 }, () => ({
+      id: fishIdCounter.current++,
+      color: FISH_COLORS[Math.floor(Math.random() * FISH_COLORS.length)],
+    })),
+  );
+  const [foods, setFoods] = useState<FoodData[]>([]);
   const [showUI, setShowUI] = useState(true);
   const [activeTheme, setActiveTheme] = useState<Theme>("day");
 
   const spawnFish = useCallback(() => {
-    if (!sceneRef.current) return;
     const color = FISH_COLORS[Math.floor(Math.random() * FISH_COLORS.length)];
-    const fish = new Fish(color, sceneRef.current, () => foodsRef.current);
-    fishesRef.current.push(fish);
-    setFishCount(fishesRef.current.length);
+    setFishes((prev) => [...prev, { id: fishIdCounter.current++, color }]);
   }, []);
 
   const spawnFood = useCallback(() => {
-    if (!sceneRef.current) return;
     const count = 3 + Math.floor(Math.random() * 3);
-    for (let i = 0; i < count; i++) {
-      const rx = (Math.random() - 0.5) * (TANK_WIDTH - 6);
-      const rz = (Math.random() - 0.5) * (TANK_DEPTH - 6);
-      const food = new Food(rx, rz, sceneRef.current, (f) => {
-        foodsRef.current = foodsRef.current.filter((x) => x !== f);
-        setFoodCount(foodsRef.current.length);
-      });
-      foodsRef.current.push(food);
-    }
-    setFoodCount(foodsRef.current.length);
+    const newFoods: FoodData[] = Array.from({ length: count }, () => ({
+      id: foodIdCounter.current++,
+      x: (Math.random() - 0.5) * (TANK_WIDTH - 6),
+      z: (Math.random() - 0.5) * (TANK_DEPTH - 6),
+    }));
+    setFoods((prev) => [...prev, ...newFoods]);
   }, []);
 
-  const handleTheme = useCallback((mode: Theme) => {
-    const scene = sceneRef.current;
-    const ambient = ambientLightRef.current;
-    const top = topLightRef.current;
-    const rays = lightRaysRef.current;
-    if (!scene || !ambient || !top) return;
-
-    if (mode === "day") {
-      (scene.background as THREE.Color).setHex(0x011125);
-      (scene.fog as THREE.FogExp2).color.setHex(0x011125);
-      (scene.fog as THREE.FogExp2).density = 0.025;
-      ambient.color.setHex(0x0a2240);
-      ambient.intensity = 1.5;
-      top.color.setHex(0xffffff);
-      top.intensity = 5;
-      rays.forEach((r) => (r.visible = true));
-    } else if (mode === "night") {
-      (scene.background as THREE.Color).setHex(0x00040a);
-      (scene.fog as THREE.FogExp2).color.setHex(0x00040a);
-      (scene.fog as THREE.FogExp2).density = 0.035;
-      ambient.color.setHex(0x010815);
-      ambient.intensity = 0.6;
-      top.color.setHex(0x4080ff);
-      top.intensity = 1.8;
-      rays.forEach((r) => (r.visible = false));
-    } else {
-      (scene.background as THREE.Color).setHex(0x000105);
-      (scene.fog as THREE.FogExp2).color.setHex(0x000105);
-      (scene.fog as THREE.FogExp2).density = 0.06;
-      ambient.color.setHex(0x00020a);
-      ambient.intensity = 0.2;
-      top.color.setHex(0x22d3ee);
-      top.intensity = 3.0;
-      rays.forEach((r) => (r.visible = true));
-    }
-    setActiveTheme(mode);
-  }, []);
-
-  // Three.js の初期化
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-
-    // シーン
-    const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x011125);
-    scene.fog = new THREE.FogExp2(0x011125, 0.025);
-    sceneRef.current = scene;
-
-    // カメラ
-    const camera = new THREE.PerspectiveCamera(
-      60,
-      container.clientWidth / container.clientHeight,
-      0.1,
-      1000,
-    );
-    camera.position.set(0, 5, 25);
-    cameraRef.current = camera;
-
-    // レンダラー
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setSize(container.clientWidth, container.clientHeight);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    renderer.shadowMap.enabled = true;
-    renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.2;
-    container.appendChild(renderer.domElement);
-    rendererRef.current = renderer;
-
-    // カメラコントロール
-    const controls = new OrbitControls(camera, renderer.domElement);
-    controls.enableDamping = true;
-    controls.dampingFactor = 0.05;
-    controls.maxPolarAngle = Math.PI / 2 - 0.01;
-    controls.minDistance = 5;
-    controls.maxDistance = 40;
-    controlsRef.current = controls;
-
-    // ライティング
-    const ambientLight = new THREE.AmbientLight(0x224466, 3);
-    scene.add(ambientLight);
-    ambientLightRef.current = ambientLight;
-
-    const topLight = new THREE.SpotLight(0xffffff, 400);
-    topLight.position.set(0, TANK_HEIGHT, 0);
-    topLight.angle = Math.PI / 3;
-    topLight.penumbra = 0.8;
-    topLight.castShadow = true;
-    topLight.shadow.mapSize.width = 1024;
-    topLight.shadow.mapSize.height = 1024;
-    scene.add(topLight);
-    scene.add(topLight.target); // SpotLight の向き計算に必要
-    topLightRef.current = topLight;
-
-    // 水槽の外枠
-    const tankGeo = new THREE.BoxGeometry(TANK_WIDTH, TANK_HEIGHT, TANK_DEPTH);
-    const edgeGeo = new THREE.EdgesGeometry(tankGeo);
-    const edgeMat = new THREE.LineBasicMaterial({
-      color: 0x0ea5e9,
-      transparent: true,
-      opacity: 0.15,
-    });
-    scene.add(new THREE.LineSegments(edgeGeo, edgeMat));
-
-    // 底砂
-    const floorGeo = new THREE.PlaneGeometry(TANK_WIDTH, TANK_DEPTH, 24, 24);
-    const pos = floorGeo.attributes.position;
-    for (let i = 0; i < pos.count; i++) {
-      const vx = pos.getX(i);
-      const vy = pos.getY(i);
-      pos.setZ(
-        i,
-        Math.sin(vx * 0.3) * Math.cos(vy * 0.3) * 0.2 +
-          Math.sin(vx * 0.1) * 0.1,
-      );
-    }
-    floorGeo.computeVertexNormals();
-    const floorMat = new THREE.MeshStandardMaterial({
-      color: 0x051b30,
-      roughness: 0.9,
-      metalness: 0.1,
-      flatShading: true,
-    });
-    const floor = new THREE.Mesh(floorGeo, floorMat);
-    floor.rotation.x = -Math.PI / 2;
-    floor.position.y = -TANK_HEIGHT / 2;
-    floor.receiveShadow = true;
-    scene.add(floor);
-
-    // 水光の差し込み
-    const rayGeo = new THREE.ConeGeometry(8, TANK_HEIGHT, 4, 1, true);
-    const rayMat = new THREE.MeshBasicMaterial({
-      color: 0x0ea5e9,
-      transparent: true,
-      opacity: 0.05,
-      side: THREE.DoubleSide,
-      depthWrite: false,
-    });
-    const rays: THREE.Mesh[] = [];
-    for (let i = 0; i < 3; i++) {
-      const ray = new THREE.Mesh(rayGeo, rayMat);
-      ray.position.set(
-        (Math.random() - 0.5) * 15,
-        0,
-        (Math.random() - 0.5) * 10,
-      );
-      ray.rotation.x = (Math.random() - 0.5) * 0.2;
-      ray.rotation.z = (Math.random() - 0.5) * 0.2;
-      scene.add(ray);
-      rays.push(ray);
-    }
-    lightRaysRef.current = rays;
-
-    // 泡（パーティクル）
-    const bubbleCount = 120;
-    const geom = new THREE.BufferGeometry();
-    const positions: number[] = [];
-    const speeds: number[] = [];
-    for (let i = 0; i < bubbleCount; i++) {
-      positions.push(
-        (Math.random() - 0.5) * (TANK_WIDTH - 2),
-        (Math.random() - 0.5) * TANK_HEIGHT,
-        (Math.random() - 0.5) * (TANK_DEPTH - 2),
-      );
-      speeds.push(0.02 + Math.random() * 0.04);
-    }
-    geom.setAttribute(
-      "position",
-      new THREE.Float32BufferAttribute(positions, 3),
-    );
-    const bubbleMat = new THREE.PointsMaterial({
-      color: 0xffffff,
-      size: 0.15,
-      transparent: true,
-      opacity: 0.4,
-      blending: THREE.AdditiveBlending,
-      depthWrite: false,
-    });
-    const bubbleSystem = new THREE.Points(geom, bubbleMat);
-    bubbleSystem.userData = { speeds };
-    scene.add(bubbleSystem);
-    bubbleSystemRef.current = bubbleSystem;
-
-    // 初期の魚
-    const initialFishes: Fish[] = [];
-    for (let i = 0; i < 12; i++) {
-      const color = FISH_COLORS[Math.floor(Math.random() * FISH_COLORS.length)];
-      initialFishes.push(new Fish(color, scene, () => foodsRef.current));
-    }
-    fishesRef.current = initialFishes;
-    setFishCount(12);
-
-    // アニメーションループ
-    function animate() {
-      animationIdRef.current = requestAnimationFrame(animate);
-      const time = performance.now() * 0.001;
-      controls.update();
-
-      fishesRef.current.forEach((fish) => fish.update(time));
-
-      // スナップショットで安全にイテレート（更新中に配列が変わっても問題ない）
-      const currentFoods = [...foodsRef.current];
-      for (let i = currentFoods.length - 1; i >= 0; i--) {
-        currentFoods[i].update();
-      }
-
-      if (bubbleSystemRef.current) {
-        const posArr = bubbleSystemRef.current.geometry.attributes.position
-          .array as Float32Array;
-        const spds = bubbleSystemRef.current.userData.speeds as number[];
-        for (let i = 0; i < spds.length; i++) {
-          const idxY = i * 3 + 1;
-          posArr[idxY] += spds[i];
-          if (posArr[idxY] > TANK_HEIGHT / 2) {
-            posArr[idxY] = -TANK_HEIGHT / 2;
-            posArr[i * 3] = (Math.random() - 0.5) * (TANK_WIDTH - 2);
-            posArr[i * 3 + 2] = (Math.random() - 0.5) * (TANK_DEPTH - 2);
-          }
-        }
-        bubbleSystemRef.current.geometry.attributes.position.needsUpdate = true;
-      }
-
-      lightRaysRef.current.forEach((ray, idx) => {
-        ray.rotation.y = time * 0.1 * (idx + 1);
-        ray.position.x += Math.sin(time + idx) * 0.005;
-      });
-
-      renderer.render(scene, camera);
-    }
-    animate();
-
-    // リサイズ対応
-    function onResize() {
-      if (!container || !cameraRef.current || !rendererRef.current) return;
-      camera.aspect = container.clientWidth / container.clientHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(container.clientWidth, container.clientHeight);
-    }
-    window.addEventListener("resize", onResize);
-
-    return () => {
-      cancelAnimationFrame(animationIdRef.current);
-      window.removeEventListener("resize", onResize);
-      fishesRef.current = [];
-      foodsRef.current = [];
-      renderer.dispose();
-      if (container.contains(renderer.domElement)) {
-        container.removeChild(renderer.domElement);
-      }
-    };
+  const removeFood = useCallback((id: number) => {
+    setFoods((prev) => prev.filter((f) => f.id !== id));
   }, []);
 
   // Esc キーで UI 復帰
@@ -335,11 +67,25 @@ export default function App() {
 
   return (
     <>
-      {/* Three.js キャンバスのコンテナ */}
-      <div
-        ref={containerRef}
-        className="w-full h-full absolute top-0 left-0 z-1"
-      />
+      {/* R3F キャンバス */}
+      <Canvas
+        className="absolute top-0 left-0 w-full h-full"
+        camera={{ fov: 60, near: 0.1, far: 1000, position: [0, 5, 25] }}
+        shadows
+        dpr={[1, 2]}
+        gl={{
+          antialias: true,
+          toneMapping: ACESFilmicToneMapping,
+          toneMappingExposure: 1.2,
+        }}
+      >
+        <AquariumScene
+          fishes={fishes}
+          foods={foods}
+          theme={activeTheme}
+          onFoodRemove={removeFood}
+        />
+      </Canvas>
 
       {/* 観賞モード中の復帰ボタン */}
       {!showUI && (
@@ -413,11 +159,13 @@ export default function App() {
             <div className="flex justify-between text-xs text-slate-400 mt-1 px-1">
               <span>
                 魚の数:{" "}
-                <span className="text-cyan-400 font-bold">{fishCount}</span> 匹
+                <span className="text-cyan-400 font-bold">{fishes.length}</span>{" "}
+                匹
               </span>
               <span>
                 エサの数:{" "}
-                <span className="text-amber-400 font-bold">{foodCount}</span> 個
+                <span className="text-amber-400 font-bold">{foods.length}</span>{" "}
+                個
               </span>
             </div>
           </div>
@@ -432,7 +180,7 @@ export default function App() {
               {(["day", "night", "abyss"] as Theme[]).map((t) => (
                 <button
                   key={t}
-                  onClick={() => handleTheme(t)}
+                  onClick={() => setActiveTheme(t)}
                   className={`font-medium py-1.5 px-2 rounded-xl text-xs transition duration-200 border ${
                     activeTheme === t
                       ? "bg-slate-800 text-cyan-400 border-cyan-500/30"
