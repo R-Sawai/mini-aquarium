@@ -7,10 +7,14 @@ export type FishData = { id: number; color: number };
 
 type Props = {
   data: FishData;
-  foodMeshMapRef: React.MutableRefObject<Map<number, THREE.Mesh>>;
+  foodMeshMapRef: React.RefObject<Map<number, THREE.Mesh>>;
   onFoodEaten: (id: number) => void;
 };
 
+/**
+ * 単一の魚メッシュ
+ * 自律的に泳ぎ、近くの餌を追いかける
+ */
 export function FishMesh({ data, foodMeshMapRef, onFoodEaten }: Props) {
   const { color } = data;
   const groupRef = useRef<THREE.Group>(null!);

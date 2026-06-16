@@ -13,6 +13,10 @@ type SeaweedBladeProps = {
   targetHeight: number;
 };
 
+/**
+ * 単一の海藻ブレード
+ * 複数のセグメントで構成され、ゆらゆらと揺れる
+ */
 function SeaweedBlade({ x, z, targetHeight }: SeaweedBladeProps) {
   const segmentHeight = targetHeight / SEGMENT_COUNT;
   const jointRefs = useRef<(THREE.Group | null)[]>([]);
@@ -46,7 +50,9 @@ function SeaweedBlade({ x, z, targetHeight }: SeaweedBladeProps) {
       >
         {/* Offset mesh so its base sits at y=0 of the joint */}
         <mesh position-y={segmentHeight / 2} castShadow receiveShadow>
-          <cylinderGeometry args={[radiusTop, radiusBottom, segmentHeight, 5]} />
+          <cylinderGeometry
+            args={[radiusTop, radiusBottom, segmentHeight, 5]}
+          />
           <meshStandardMaterial
             color={SEAWEED_COLOR}
             roughness={0.8}
@@ -58,13 +64,15 @@ function SeaweedBlade({ x, z, targetHeight }: SeaweedBladeProps) {
     );
   };
 
-  return (
-    <group position={[x, -TANK_HEIGHT / 2, z]}>{renderSegments(0)}</group>
-  );
+  return <group position={[x, -TANK_HEIGHT / 2, z]}>{renderSegments(0)}</group>;
 }
 
 type SeaweedInstance = { x: number; z: number; height: number };
 
+/**
+ * 水槽内の海藻フィールド
+ * 複数の SeaweedBlade インスタンスをランダムに配置
+ */
 export function SeaweedField() {
   const instances = useMemo<SeaweedInstance[]>(() => {
     const clusters = [
