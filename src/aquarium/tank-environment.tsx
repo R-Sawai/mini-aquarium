@@ -1,5 +1,6 @@
 import { useEffect, useRef, useMemo } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
+import { MeshReflectorMaterial } from "@react-three/drei";
 import * as THREE from "three";
 import { TANK_WIDTH, TANK_HEIGHT, TANK_DEPTH } from "./constants";
 
@@ -15,29 +16,11 @@ export const THEME_CONFIGS = {
     spotIntensity: 3000,
     showRays: true,
   },
-  night: {
-    bg: 0x00040a,
-    fogDensity: 0.035,
-    ambientColor: 0x010815,
-    ambientIntensity: 0.6,
-    spotColor: 0x4080ff,
-    spotIntensity: 2000,
-    showRays: false,
-  },
-  abyss: {
-    bg: 0x000105,
-    fogDensity: 0.06,
-    ambientColor: 0x00020a,
-    ambientIntensity: 0.2,
-    spotColor: 0x22d3ee,
-    spotIntensity: 1000,
-    showRays: true,
-  },
 } as const;
 
-function SceneBackground({ theme }: { theme: Theme }) {
+function SceneBackground() {
   const { scene } = useThree();
-  const config = THEME_CONFIGS[theme];
+  const config = THEME_CONFIGS["day"];
 
   useEffect(() => {
     scene.background = new THREE.Color(config.bg);
@@ -47,8 +30,8 @@ function SceneBackground({ theme }: { theme: Theme }) {
   return null;
 }
 
-export function TankEnvironment({ theme }: { theme: Theme }) {
-  const config = THEME_CONFIGS[theme];
+export function TankEnvironment() {
+  const config = THEME_CONFIGS["day"];
 
   const ray0Ref = useRef<THREE.Mesh>(null!);
   const ray1Ref = useRef<THREE.Mesh>(null!);
@@ -132,7 +115,7 @@ export function TankEnvironment({ theme }: { theme: Theme }) {
 
   return (
     <>
-      <SceneBackground theme={theme} />
+      <SceneBackground />
 
       <ambientLight
         color={config.ambientColor}
@@ -201,6 +184,60 @@ export function TankEnvironment({ theme }: { theme: Theme }) {
           depthWrite={false}
         />
       </points>
+
+      {/* Glass walls */}
+      {/* Front */}
+      <GlassWall
+        position={[0, 0, TANK_DEPTH / 2]}
+        rotation={[0, Math.PI, 0]}
+        width={TANK_WIDTH}
+        height={TANK_HEIGHT}
+      />
+      <GlassWall
+        position={[0, 0, -TANK_DEPTH / 2]}
+        rotation={[0, 0, 0]}
+        width={TANK_WIDTH}
+        height={TANK_HEIGHT}
+      />
+      {/* Left */}
+      <GlassWall
+        position={[-TANK_WIDTH / 2, 0, 0]}
+        rotation={[0, Math.PI / 2, 0]}
+        width={TANK_DEPTH}
+        height={TANK_HEIGHT}
+      />
+      {/* Right */}
+      <GlassWall
+        position={[TANK_WIDTH / 2, 0, 0]}
+        rotation={[0, -Math.PI / 2, 0]}
+        width={TANK_DEPTH}
+        height={TANK_HEIGHT}
+      />
     </>
   );
 }
+
+const GlassWall: React.FC<{
+  position: [number, number, number];
+  rotation: [number, number, number];
+  width: number;
+  height: number;
+}> = ({ position, rotation, width, height }) => {
+  return (
+    <mesh position={position} rotation={rotation}>
+      <planeGeometry args={[width, height]} />
+      <MeshReflectorMaterial
+        resolution={512}
+        mirror={0.85}
+        mixBlur={0.6}
+        mixStrength={1.5}
+        roughness={0.05}
+        depthScale={1}
+        minDepthThreshold={0.4}
+        maxDepthThreshold={1.2}
+        color="#a8d5f7"
+        metalness={0.1}
+      />
+    </mesh>
+  );
+};

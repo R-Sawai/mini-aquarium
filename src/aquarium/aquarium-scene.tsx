@@ -1,7 +1,7 @@
 import { useRef } from "react";
 import * as THREE from "three";
 import { CameraControls } from "./camera-controls";
-import { TankEnvironment, type Theme } from "./tank-environment";
+import { TankEnvironment } from "./tank-environment";
 import { FishMesh, type FishData } from "./fish-mesh";
 import { FoodMesh, type FoodData } from "./food-mesh";
 import { SeaweedField } from "./seaweed";
@@ -9,18 +9,17 @@ import { SeaweedField } from "./seaweed";
 type Props = {
   fishes: FishData[];
   foods: FoodData[];
-  theme: Theme;
   onFoodRemove: (id: number) => void;
 };
 
-export function AquariumScene({ fishes, foods, theme, onFoodRemove }: Props) {
+export function AquariumScene({ fishes, foods, onFoodRemove }: Props) {
   // Shared mutable map of food mesh positions, used by fish to seek food
   const foodMeshMapRef = useRef<Map<number, THREE.Mesh>>(new Map());
 
   return (
     <>
       <CameraControls />
-      <TankEnvironment theme={theme} />
+      <TankEnvironment />
       <SeaweedField />
       {fishes.map((fish) => (
         <FishMesh
