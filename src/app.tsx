@@ -20,7 +20,7 @@ export default function App() {
   const [foods, setFoods] = useState<FoodData[]>([]);
   const [showUI, setShowUI] = useState(true);
 
-  const spawnFish = useCallback(() => {
+  const _spawnFish = useCallback(() => {
     const color = FISH_COLORS[Math.floor(Math.random() * FISH_COLORS.length)];
     setFishes((prev) => [...prev, { id: fishIdCounter.current++, color }]);
   }, []);
