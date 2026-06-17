@@ -6,6 +6,7 @@ import { AquariumScene } from "./aquarium/aquarium-scene";
 import { TANK_WIDTH, TANK_DEPTH, FISH_COLORS } from "./aquarium/constants";
 import type { FishData } from "./aquarium/fish-mesh";
 import type { FoodData } from "./aquarium/food-mesh";
+import { _unused } from "./utils/unused";
 
 export default function App() {
   const fishIdCounter = useRef(0);
@@ -20,10 +21,12 @@ export default function App() {
   const [foods, setFoods] = useState<FoodData[]>([]);
   const [showUI, setShowUI] = useState(true);
 
-  const _spawnFish = useCallback(() => {
+  // TODO: 一時的な処置 (削除検討)
+  const spawnFish = useCallback(() => {
     const color = FISH_COLORS[Math.floor(Math.random() * FISH_COLORS.length)];
     setFishes((prev) => [...prev, { id: fishIdCounter.current++, color }]);
   }, []);
+  _unused(spawnFish);
 
   const spawnFood = useCallback(() => {
     const count = 3 + Math.floor(Math.random() * 3);
