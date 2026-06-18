@@ -1,6 +1,20 @@
 import { useEffect, useRef, useState } from "react";
 import * as Tone from "tone";
 
+// テーマごとに変化させることも可能な構造にしておく
+const CHORD_DATA = {
+  day: [
+    ["F3", "A3", "C4", "E4"], // Fmaj7 (明るく透き通るコード)
+    ["Bb3", "D4", "F4", "A4"], // Bbmaj7
+    ["D3", "F3", "A3", "C4"], // Dm7
+    ["C3", "E3", "G3", "A3"], // C6
+  ],
+};
+
+const PLAYABLE_NOTES = {
+  day: ["C4", "D4", "E4", "G4", "A4", "C5", "D5", "E5"],
+};
+
 export const useBgm = () => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [volume, setVolume] = useState(-12); // デシベル単位 (-40 〜 0)
@@ -14,27 +28,22 @@ export const useBgm = () => {
   const volumeNodeRef = useRef<Tone.Volume>(null);
   const chordLoopRef = useRef<Tone.Loop>(null);
   const melodyLoopRef = useRef<Tone.Loop>(null);
+  const stopTimeoutRef = useRef<ReturnType<typeof setTimeout>>(null);
+  const isInitializingRef = useRef(false);
+  const volumeRef = useRef(volume);
 
-  // 音楽データの定義（一応テーマごとに変化させることも可能な構造にしておく）
-  const chordData = {
-    day: [
-      ["F3", "A3", "C4", "E4"], // Fmaj7 (明るく透き通るコード)
-      ["Bb3", "D4", "F4", "A4"], // Bbmaj7
-      ["D3", "F3", "A3", "C4"], // Dm7
-      ["C3", "E3", "G3", "A3"], // C6
-    ],
-  };
-
-  const playableNotes = {
-    day: ["C4", "D4", "E4", "G4", "A4", "C5", "D5", "E5"],
-  };
+  // volume 変更を音量ノードにリアルタイム反映
+  useEffect(() => {
+    volumeRef.current = volume;
+    volumeNodeRef.current?.volume.rampTo(volume, 0.1);
+  }, [volume]);
 
   // 音響システムの構築
   const initAudio = async () => {
     await Tone.start();
 
     // マスター音量調整ノード
-    volumeNodeRef.current = new Tone.Volume(volume).toDestination();
+    volumeNodeRef.current = new Tone.Volume(volumeRef.current).toDestination();
 
     // エフェクター：空間の広がり（リバーブ）
     reverbRef.current = new Tone.Reverb({
@@ -80,26 +89,24 @@ export const useBgm = () => {
     // 定期的な和音（コード）進行の構築（6秒サイクル）
     let chordIndex = 0;
     chordLoopRef.current = new Tone.Loop((time) => {
-      const activeChords = chordData["day"];
-      const chord = activeChords[chordIndex];
-
-      // 前の和音のリリースを行い、新しい和音をトリガー
-      synthRef?.current?.triggerAttackRelease(chord, "5.5", time);
-      chordIndex = (chordIndex + 1) % activeChords.length;
+      const chord = CHORD_DATA.day[chordIndex];
+      synthRef.current?.triggerAttackRelease(chord, "5.5", time);
+      chordIndex = (chordIndex + 1) % CHORD_DATA.day.length;
     }, "6").start(0);
 
     // 水滴のようにランダムにきらめく自動メロディ（1.5秒〜4秒のランダム間隔）
     melodyLoopRef.current = new Tone.Loop((time) => {
       // 70%の確率で音を鳴らす
       if (Math.random() > 0.3) {
-        const activeNotes = playableNotes["day"];
-        const randomNote =
-          activeNotes[Math.floor(Math.random() * activeNotes.length)];
+        const notes = PLAYABLE_NOTES.day;
+        const note = notes[Math.floor(Math.random() * notes.length)];
         // 1〜2オクターブ上げて高いきらめきを表現
-        const octaveUp = Math.random() > 0.5 ? "5" : "6";
-        const finalNote = randomNote.replace(/[0-9]/g, "") + octaveUp;
-
-        melodySynthRef?.current?.triggerAttackRelease(finalNote, "16n", time);
+        const octave = Math.random() > 0.5 ? "5" : "6";
+        melodySynthRef.current?.triggerAttackRelease(
+          note.replace(/[0-9]/g, "") + octave,
+          "16n",
+          time,
+        );
       }
     }, "2n").start(0.5); // 2拍（約1.5秒）ごとに抽選
 
@@ -109,20 +116,18 @@ export const useBgm = () => {
 
   // オーディオリソースの破棄
   const cleanupAudio = () => {
+    clearTimeout(stopTimeoutRef.current ?? undefined);
     try {
-      if (chordLoopRef.current) chordLoopRef.current.dispose();
-      if (melodyLoopRef.current) melodyLoopRef.current.dispose();
-      if (synthRef.current) synthRef.current.dispose();
-      if (melodySynthRef.current) melodySynthRef.current.dispose();
-      if (delayRef.current) delayRef.current.dispose();
-      if (reverbRef.current) reverbRef.current.dispose();
-      if (volumeNodeRef.current) volumeNodeRef.current.dispose();
-      if (analyserRef.current) analyserRef.current.dispose();
-
-      if (Tone) {
-        Tone.getTransport().stop();
-        Tone.getTransport().cancel();
-      }
+      chordLoopRef.current?.dispose();
+      melodyLoopRef.current?.dispose();
+      synthRef.current?.dispose();
+      melodySynthRef.current?.dispose();
+      delayRef.current?.dispose();
+      reverbRef.current?.dispose();
+      volumeNodeRef.current?.dispose();
+      analyserRef.current?.dispose();
+      Tone.getTransport().stop();
+      Tone.getTransport().cancel();
     } catch (e) {
       console.warn("Audio cleanup error:", e);
     }
@@ -131,26 +136,29 @@ export const useBgm = () => {
   // 演奏の再生・停止
   const handlePlayToggle = async () => {
     if (!isPlaying) {
+      // 停止フェードアウト中に再生された場合、停止タイマーをキャンセル
+      clearTimeout(stopTimeoutRef.current ?? undefined);
       if (!synthRef.current) {
+        // 初期化中の多重呼び出しを防ぐ（素早い連打対策）
+        if (isInitializingRef.current) return;
+        isInitializingRef.current = true;
         await initAudio();
+        isInitializingRef.current = false;
       }
       Tone.getTransport().start();
-      volumeNodeRef?.current?.volume.rampTo(volume, 0.5);
+      volumeNodeRef.current?.volume.rampTo(volumeRef.current, 0.5);
       setIsPlaying(true);
     } else {
-      volumeNodeRef?.current?.volume.rampTo(-Infinity, 0.5);
-      setTimeout(() => {
+      volumeNodeRef.current?.volume.rampTo(-Infinity, 0.5);
+      stopTimeoutRef.current = setTimeout(() => {
         Tone.getTransport().stop();
         setIsPlaying(false);
       }, 500);
     }
   };
 
-  //
   useEffect(() => {
-    return () => {
-      cleanupAudio();
-    };
+    return cleanupAudio;
   }, []);
 
   return {
