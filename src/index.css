@@ -8,3 +8,7 @@ body,
   width: 100dvw;
   min-width: 400px;
 }
+
+body {
+  background-color: #0a2240;
+}
