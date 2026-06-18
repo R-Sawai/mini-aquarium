@@ -13,7 +13,7 @@ export default defineConfig((mode) => {
 
   return {
     plugins: plugins,
-    // FIXME: Github用の一時的な処置
-    base: "/mini-aquarium/",
+    // 拡張機能ビルドの場合は、base を空にして相対パスでリソースを参照する
+    base: mode.mode === "extension" ? "" : "/mini-aquarium/",
   };
 });

@@ -55,7 +55,7 @@ export default function App() {
       <Canvas
         className="absolute top-0 left-0 h-full w-full"
         camera={{ fov: 60, near: 0.1, far: 1000, position: [0, 5, 25] }}
-        shadows
+        shadows="percentage"
         dpr={[1, 2]}
         gl={{
           antialias: true,
