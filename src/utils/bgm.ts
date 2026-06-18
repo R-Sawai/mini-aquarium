@@ -29,6 +29,7 @@ export const useBgm = () => {
   const chordLoopRef = useRef<Tone.Loop>(null);
   const melodyLoopRef = useRef<Tone.Loop>(null);
   const stopTimeoutRef = useRef<ReturnType<typeof setTimeout>>(null);
+  const isInitializingRef = useRef(false);
   const volumeRef = useRef(volume);
 
   // volume 変更を音量ノードにリアルタイム反映
@@ -135,8 +136,14 @@ export const useBgm = () => {
   // 演奏の再生・停止
   const handlePlayToggle = async () => {
     if (!isPlaying) {
+      // 停止フェードアウト中に再生された場合、停止タイマーをキャンセル
+      clearTimeout(stopTimeoutRef.current ?? undefined);
       if (!synthRef.current) {
+        // 初期化中の多重呼び出しを防ぐ（素早い連打対策）
+        if (isInitializingRef.current) return;
+        isInitializingRef.current = true;
         await initAudio();
+        isInitializingRef.current = false;
       }
       Tone.getTransport().start();
       volumeNodeRef.current?.volume.rampTo(volumeRef.current, 0.5);
