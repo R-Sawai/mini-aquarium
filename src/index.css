@@ -10,6 +10,7 @@ body,
 }
 
 body {
+  /* 背景色を設定 */
   background-color: #0a2240;
 
   /* テキスト選択を無効にする */
