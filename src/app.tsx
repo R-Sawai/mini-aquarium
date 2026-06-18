@@ -85,9 +85,10 @@ export default function App() {
 
       {/* UI オーバーレイ */}
       <div
-        className={`pointer-events-none absolute inset-0 z-10 flex flex-col justify-between p-4 transition-all duration-500 md:p-6 ${
-          showUI ? "opacity-100" : "pointer-events-none opacity-0"
-        }`}
+        className="pointer-events-none absolute inset-0 z-10 flex flex-col justify-between p-4 transition-all duration-500 md:p-6"
+        style={{
+          display: showUI ? "flex" : "none",
+        }}
       >
         {/* ヘッダー */}
         <header className="flex w-full items-start justify-between">

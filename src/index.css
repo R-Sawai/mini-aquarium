@@ -11,4 +11,11 @@ body,
 
 body {
   background-color: #0a2240;
+
+  /* テキスト選択を無効にする */
+  user-select: none;
+  -webkit-user-select: none; /* Safari */
+  -moz-user-select: none; /* Firefox */
+  -ms-user-select: none; /* Internet Explorer/Edge */
+  -webkit-touch-callout: none; /* iOS Safari */
 }
