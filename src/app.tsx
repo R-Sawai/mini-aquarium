@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState, useCallback } from "react";
+import { useRef, useEffect, useState, useCallback, useMemo } from "react";
 import { Canvas } from "@react-three/fiber";
 import { ACESFilmicToneMapping } from "three";
 import { EyeOff, Eye, Soup, Music2Icon } from "lucide-react";
@@ -12,10 +12,14 @@ export default function App() {
   const foodIdCounter = useRef(0);
 
   /** 魚データ */
-  const fishes = Array.from({ length: 12 }, () => ({
-    id: fishIdCounter.current++,
-    color: FISH_COLORS[Math.floor(Math.random() * FISH_COLORS.length)],
-  }));
+  const fishes = useMemo(
+    () =>
+      Array.from({ length: 12 }, () => ({
+        id: fishIdCounter.current++,
+        color: FISH_COLORS[Math.floor(Math.random() * FISH_COLORS.length)],
+      })),
+    [],
+  );
 
   const [foods, setFoods] = useState<FoodData[]>([]);
   const [showUI, setShowUI] = useState(true);
@@ -70,10 +74,10 @@ export default function App() {
       {!showUI && (
         <button
           onClick={() => setShowUI(true)}
-          className="fixed top-4 left-4 z-30 rounded-2xl border border-slate-700/50 bg-slate-900/80 p-3 text-cyan-400 shadow-2xl transition duration-200 hover:bg-slate-800"
+          className="fixed top-6 left-6 z-30 rounded-2xl border border-slate-700/50 bg-slate-900/80 p-3 text-cyan-400 shadow-2xl transition duration-200 hover:bg-slate-800"
           title="UIを表示する"
         >
-          <Eye className="h-6 w-6" />
+          <Eye className="h-5 w-5" />
         </button>
       )}
 
@@ -91,20 +95,20 @@ export default function App() {
               onClick={() => {
                 setShowUI(false);
               }}
-              className="rounded-2xl border border-slate-700/50 bg-slate-900/80 p-3 text-slate-300 shadow-2xl transition duration-200 hover:bg-slate-800 hover:text-cyan-400"
+              className="rounded-2xl border border-slate-700/50 bg-slate-900/80 p-3 text-slate-300 shadow-2xl transition duration-200 hover:bg-slate-800"
               title="観賞モード（UI非表示）"
             >
               <EyeOff className="h-5 w-5" />
             </button>
             <button
               onClick={handlePlayToggle}
-              className="rounded-2xl border border-slate-700/50 bg-slate-900/80 p-3 text-slate-300 shadow-2xl transition duration-200 hover:bg-slate-800 hover:text-cyan-400"
+              className="rounded-2xl border border-slate-700/50 bg-slate-900/80 p-3 text-slate-300 shadow-2xl transition duration-200 hover:bg-slate-800"
               title="BGMの再生/停止"
             >
               {isPlaying ? (
-                <Music2Icon className="h-5 w-5" />
+                <Music2Icon className="h-5 w-5 text-cyan-400" />
               ) : (
-                <Music2Icon className="h-5 w-5 text-slate-500" />
+                <Music2Icon className="h-5 w-5" />
               )}
             </button>
           </div>
