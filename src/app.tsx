@@ -1,26 +1,29 @@
 import { useRef, useEffect, useState, useCallback, useMemo } from "react";
 import { Canvas } from "@react-three/fiber";
 import { ACESFilmicToneMapping } from "three";
-import { EyeOff, Eye, Soup, Music2Icon } from "lucide-react";
+import { EyeOff, Eye, Soup, Music2Icon, Settings } from "lucide-react";
 import { AquariumScene } from "./components/objects/aquarium-scene";
 import { TANK_WIDTH, TANK_DEPTH, FISH_COLORS } from "./consts/aquarium";
 import type { FoodData } from "./components/objects/food-mesh";
 import { useBgm } from "./hooks/use-bgm";
 import { Button } from "./components/ui/button";
 import { Toggle } from "./components/ui/toggle";
+import { Dialog, DialogTrigger } from "./components/ui/dialog";
+import { AquariumSettings } from "./components/aquarium-settings";
 
 export default function App() {
   const fishIdCounter = useRef(0);
   const foodIdCounter = useRef(0);
 
   /** 魚データ */
+  const [fishCount, setFishCount] = useState(12);
   const fishes = useMemo(
     () =>
-      Array.from({ length: 12 }, () => ({
+      Array.from({ length: fishCount }, () => ({
         id: fishIdCounter.current++,
         color: FISH_COLORS[Math.floor(Math.random() * FISH_COLORS.length)],
       })),
-    [],
+    [fishCount],
   );
 
   const [foods, setFoods] = useState<FoodData[]>([]);
@@ -49,7 +52,7 @@ export default function App() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
 
-  const { isPlaying, handlePlayToggle } = useBgm();
+  const { isPlaying, volume, setVolume, handlePlayToggle } = useBgm();
 
   return (
     <>
@@ -117,11 +120,26 @@ export default function App() {
                 <Music2Icon className="size-full" />
               )}
             </Toggle>
+
+            {/* 設定ダイアログ */}
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button size="icon-xl" variant="aquarium" title="水槽の設定">
+                  <Settings className="size-full" />
+                </Button>
+              </DialogTrigger>
+              <AquariumSettings
+                volume={volume}
+                setVolume={setVolume}
+                fishCount={fishCount}
+                setFishCount={setFishCount}
+              />
+            </Dialog>
           </div>
         </header>
 
         {/* コントロールパネル */}
-        <footer className="flex max-w-xl gap-4">
+        <footer className="flex items-end justify-between gap-4">
           {/* シミュレーション */}
           <div className="bg-background/80 border-border/50 pointer-events-auto flex flex-col gap-3 rounded-2xl border p-4 backdrop-blur-md">
             <Button
@@ -132,6 +150,10 @@ export default function App() {
               エサをあげる
             </Button>
           </div>
+
+          <p className="text-border text-xs">
+            v{__APP_VERSION__} &copy; {__APP_AUTHOR__}
+          </p>
         </footer>
       </div>
     </>

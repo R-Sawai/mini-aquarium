@@ -4,6 +4,7 @@ import tailwindcss from "@tailwindcss/vite";
 import { crx } from "@crxjs/vite-plugin";
 import manifest from "./manifest.config.js";
 import path from "path";
+import pkg from "./package.json";
 
 // https://vite.dev/config/
 export default defineConfig((mode) => {
@@ -14,6 +15,10 @@ export default defineConfig((mode) => {
 
   return {
     plugins: plugins,
+    define: {
+      __APP_VERSION__: JSON.stringify(pkg.version),
+      __APP_AUTHOR__: JSON.stringify(pkg.author),
+    },
     resolve: {
       alias: {
         "@": path.resolve(__dirname, "./src"),
