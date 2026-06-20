@@ -2,7 +2,7 @@ import { useEffect, useRef, useMemo } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { MeshReflectorMaterial } from "@react-three/drei";
 import * as THREE from "three";
-import { TANK_WIDTH, TANK_HEIGHT, TANK_DEPTH } from "./constants";
+import { TANK_WIDTH, TANK_HEIGHT, TANK_DEPTH } from "../../consts/aquarium";
 
 export type Theme = "day" | "night" | "abyss";
 

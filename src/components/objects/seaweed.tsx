@@ -2,7 +2,7 @@ import { useRef, useMemo } from "react";
 import type { ReactNode } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
-import { TANK_HEIGHT, TANK_WIDTH } from "./constants";
+import { TANK_HEIGHT, TANK_WIDTH } from "../../consts/aquarium";
 
 const SEAWEED_COLOR = 0x166534;
 const SEGMENT_COUNT = 6;

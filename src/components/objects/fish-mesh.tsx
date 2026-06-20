@@ -1,7 +1,7 @@
 import { useRef, useMemo, useEffect } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
-import { TANK_WIDTH, TANK_HEIGHT, TANK_DEPTH } from "./constants";
+import { TANK_WIDTH, TANK_HEIGHT, TANK_DEPTH } from "../../consts/aquarium";
 
 export type FishData = { id: number; color: number };
 

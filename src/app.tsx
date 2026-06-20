@@ -1,26 +1,22 @@
-import { useRef, useEffect, useState, useCallback, useMemo } from "react";
+import { useRef, useEffect, useState, useCallback } from "react";
 import { Canvas } from "@react-three/fiber";
 import { ACESFilmicToneMapping } from "three";
 import { EyeOff, Eye, Soup, Music2Icon } from "lucide-react";
-import { AquariumScene } from "./aquarium/aquarium-scene";
-import { TANK_WIDTH, TANK_DEPTH, FISH_COLORS } from "./aquarium/constants";
-import type { FishData } from "./aquarium/fish-mesh";
-import type { FoodData } from "./aquarium/food-mesh";
-import { useBgm } from "./utils/bgm";
+import { AquariumScene } from "./components/objects/aquarium-scene";
+import { TANK_WIDTH, TANK_DEPTH, FISH_COLORS } from "./consts/aquarium";
+import type { FoodData } from "./components/objects/food-mesh";
+import { useBgm } from "./hooks/use-bgm";
 
 export default function App() {
   const fishIdCounter = useRef(0);
   const foodIdCounter = useRef(0);
 
   /** 魚データ */
-  const fishes = useMemo<FishData[]>(
-    () =>
-      Array.from({ length: 12 }, () => ({
-        id: fishIdCounter.current++,
-        color: FISH_COLORS[Math.floor(Math.random() * FISH_COLORS.length)],
-      })),
-    [],
-  );
+  const fishes = Array.from({ length: 12 }, () => ({
+    id: fishIdCounter.current++,
+    color: FISH_COLORS[Math.floor(Math.random() * FISH_COLORS.length)],
+  }));
+
   const [foods, setFoods] = useState<FoodData[]>([]);
   const [showUI, setShowUI] = useState(true);
 
@@ -55,7 +51,7 @@ export default function App() {
       <Canvas
         className="absolute top-0 left-0 h-full w-full"
         camera={{ fov: 60, near: 0.1, far: 1000, position: [0, 5, 25] }}
-        shadows
+        shadows="percentage"
         dpr={[1, 2]}
         gl={{
           antialias: true,
