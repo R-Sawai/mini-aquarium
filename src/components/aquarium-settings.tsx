@@ -1,10 +1,5 @@
 import { FishIcon, Music2Icon } from "lucide-react";
-import {
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "./ui/dialog";
+import { DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
 
 type Props = {
   volume: number;
