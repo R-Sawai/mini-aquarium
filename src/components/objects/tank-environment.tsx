@@ -236,14 +236,13 @@ const GlassWall: React.FC<{
       <MeshReflectorMaterial
         resolution={512}
         mirror={0.85}
-        mixBlur={0.6}
         mixStrength={1.5}
         roughness={0.05}
         depthScale={1}
         minDepthThreshold={0.4}
         maxDepthThreshold={1.2}
-        color="#a8d5f7"
-        metalness={0.1}
+        color="#0ea5e9"
+        metalness={0.4}
       />
     </mesh>
   );
