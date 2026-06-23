@@ -62,7 +62,7 @@ export function FishMesh({ data, foodMeshMapRef, onFoodEaten }: Props) {
   const tailGeo = useMemo(() => {
     const geo = new THREE.ConeGeometry(0.4, 0.8, 4);
     geo.rotateZ(-Math.PI / 2);
-    geo.scale(1, 0.2, 1.5);
+    geo.scale(1, 1, 0.2);
     return geo;
   }, []);
 
