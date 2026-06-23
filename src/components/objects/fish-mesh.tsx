@@ -2,6 +2,7 @@ import { useRef, useMemo, useEffect } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { TANK_WIDTH, TANK_HEIGHT, TANK_DEPTH } from "../../consts/aquarium";
+import { useAquariumStore } from "@/hooks/use-aquarium-store";
 
 export type FishData = { id: number; color: number };
 
@@ -38,6 +39,10 @@ export function FishMesh({ data, foodMeshMapRef, onFoodEaten }: Props) {
   });
 
   const scale = useMemo(() => 0.8 + Math.random() * 0.4, []);
+  const hatColor = useMemo(() => {
+    const hatColors = [0xff3b30, 0xffcc00, 0x34c759, 0x007aff, 0xaf52de];
+    return hatColors[Math.floor(Math.random() * hatColors.length)];
+  }, []);
   const initialPos = useMemo<[number, number, number]>(
     () => [
       (Math.random() - 0.5) * (TANK_WIDTH - 4),
@@ -140,6 +145,9 @@ export function FishMesh({ data, foodMeshMapRef, onFoodEaten }: Props) {
     tailJoint.rotation.y = Math.sin(time * s.wiggleSpeed + s.wigglePhase) * 0.5;
   });
 
+  /** 現在のモード */
+  const currentMode = useAquariumStore((state) => state.currentMode);
+
   return (
     <group ref={groupRef} position={initialPos} scale={scale}>
       <mesh geometry={bodyGeo} castShadow>
@@ -163,6 +171,26 @@ export function FishMesh({ data, foodMeshMapRef, onFoodEaten }: Props) {
         <sphereGeometry args={[0.12, 8, 8]} />
         <meshBasicMaterial color={0x000000} />
       </mesh>
+
+      {/* パーティーモード時のみパーティーハットを表示 */}
+      {currentMode === "party" && (
+        <group position={[0.4, 0.7, 0]} rotation={[0, 0, -0.15]}>
+          {/* コーン部分 */}
+          <mesh>
+            <coneGeometry args={[0.2, 0.45, 8]} />
+            <meshStandardMaterial
+              color={hatColor}
+              roughness={0.2}
+              metalness={0.1}
+            />
+          </mesh>
+          {/* ポンポン部分 */}
+          <mesh position={[0, 0.25, 0]}>
+            <sphereGeometry args={[0.05, 8, 8]} />
+            <meshBasicMaterial color={0xffffff} />
+          </mesh>
+        </group>
+      )}
     </group>
   );
 }

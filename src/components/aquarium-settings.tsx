@@ -1,5 +1,7 @@
-import { FishIcon, Music2Icon } from "lucide-react";
+import { FishIcon, Music2Icon, SpotlightIcon } from "lucide-react";
 import { DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
+import { AQUARIUM_MODES } from "@/consts/aquarium";
+import { useAquariumStore } from "@/hooks/use-aquarium-store";
 
 type Props = {
   volume: number;
@@ -32,6 +34,8 @@ export const AquariumSettings = ({
   fishCount,
   setFishCount,
 }: Props) => {
+  const { currentMode, setCurrentMode } = useAquariumStore((state) => state);
+
   return (
     <DialogContent>
       <DialogHeader>
@@ -70,6 +74,27 @@ export const AquariumSettings = ({
             <span className="text-muted-foreground w-14 text-right text-xs tabular-nums">
               {fishCount} 匹
             </span>
+          </div>
+        </SettingRow>
+
+        <SettingRow icon={<SpotlightIcon className="size-4" />} label="モード">
+          <div className="flex items-center gap-3">
+            <select
+              value={currentMode}
+              onChange={(e) => {
+                const selectedMode = e.target.value;
+                if (selectedMode in AQUARIUM_MODES) {
+                  setCurrentMode(selectedMode as keyof typeof AQUARIUM_MODES);
+                }
+              }}
+              className="accent-primary border-input bg-background flex-1 rounded border px-2 py-1 text-sm"
+            >
+              {Object.entries(AQUARIUM_MODES).map(([modeKey, modeName]) => (
+                <option key={modeKey} value={modeKey}>
+                  {modeName}
+                </option>
+              ))}
+            </select>
           </div>
         </SettingRow>
       </div>
